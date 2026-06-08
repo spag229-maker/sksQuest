@@ -138,7 +138,6 @@ class _QuestCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          // Прогресс
           Row(
             children: [
               Expanded(
@@ -166,11 +165,19 @@ class _QuestCard extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              _rewardBadge(Icons.bolt_rounded, AppTheme.xpBlue,
-                  '+${quest.xpReward} XP'),
+              // XP badge — иконка
+              _rewardBadge(
+                icon: Icons.bolt_rounded,
+                color: AppTheme.xpBlue,
+                text: '+${quest.xpReward} XP',
+              ),
               const SizedBox(width: 8),
-              _rewardBadge(Icons.monetization_on_rounded, AppTheme.gold,
-                  '+${quest.coinReward}'),
+              // Coins badge — эмодзи 🪙
+              _rewardBadge(
+                emoji: '🪙',
+                color: AppTheme.gold,
+                text: '+${quest.coinReward}',
+              ),
               const Spacer(),
               _actionButton(context, state),
             ],
@@ -180,7 +187,12 @@ class _QuestCard extends StatelessWidget {
     );
   }
 
-  Widget _rewardBadge(IconData icon, Color color, String text) {
+  Widget _rewardBadge({
+    IconData? icon,
+    String? emoji,
+    required Color color,
+    required String text,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
@@ -188,8 +200,12 @@ class _QuestCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 14),
+          if (emoji != null)
+            Text(emoji, style: const TextStyle(fontSize: 13, height: 1))
+          else
+            Icon(icon, color: color, size: 14),
           const SizedBox(width: 3),
           Text(
             text,

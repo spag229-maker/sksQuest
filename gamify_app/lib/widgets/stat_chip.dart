@@ -4,18 +4,20 @@ import '../theme/app_theme.dart';
 
 /// Маленький чип со статом (монеты / XP / стрик)
 class StatChip extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;   // используется если emoji == null
+  final String? emoji;    // приоритет над icon
   final Color color;
   final String value;
   final String label;
 
   const StatChip({
     super.key,
-    required this.icon,
+    this.icon,
+    this.emoji,
     required this.color,
     required this.value,
     required this.label,
-  });
+  }) : assert(icon != null || emoji != null, 'Укажи icon или emoji');
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +30,11 @@ class StatChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 18),
+          // Иконка: эмодзи или Material icon
+          if (emoji != null)
+            Text(emoji!, style: const TextStyle(fontSize: 17, height: 1))
+          else
+            Icon(icon, color: color, size: 18),
           const SizedBox(width: 6),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,

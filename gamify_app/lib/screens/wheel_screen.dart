@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
@@ -14,94 +15,182 @@ class WheelScreen extends StatefulWidget {
 }
 
 class _WheelScreenState extends State<WheelScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
+    with TickerProviderStateMixin {
+  late AnimationController _wheelController;
+  late AnimationController _pulseController;
+  late AnimationController _buttonPressController;
+  late AnimationController _glowController;
+
+  late Animation<double> _wheelAnimation;
+  late Animation<double> _pulseAnimation;
+  late Animation<double> _buttonScaleAnimation;
+  late Animation<double> _glowAnimation;
+
   bool _spinning = false;
+  double _currentAngle = 0;
+  double _lastHapticAngle = 0;
 
   final List<WheelPrize> _prizes = const [
-    WheelPrize(label: '50 монет', value: 50, isCoins: true, color: AppTheme.gold),
-    WheelPrize(label: '100 XP', value: 100, isCoins: false, color: AppTheme.xpBlue),
-    WheelPrize(label: '20 монет', value: 20, isCoins: true, color: AppTheme.questGreen),
-    WheelPrize(label: 'ДЖЕКПОТ 500', value: 500, isCoins: true, color: AppTheme.primary),
-    WheelPrize(label: '30 XP', value: 30, isCoins: false, color: AppTheme.legendaryPurple),
-    WheelPrize(label: '10 монет', value: 10, isCoins: true, color: AppTheme.bronze),
-    WheelPrize(label: '200 XP', value: 200, isCoins: false, color: AppTheme.xpBlue),
-    WheelPrize(label: '75 монет', value: 75, isCoins: true, color: AppTheme.gold),
+    WheelPrize(label: '50 монет',   value: 50,  isCoins: true,  color: AppTheme.gold),
+    WheelPrize(label: '100 XP',     value: 100, isCoins: false, color: AppTheme.xpBlue),
+    WheelPrize(label: '20 монет',   value: 20,  isCoins: true,  color: AppTheme.questGreen),
+    WheelPrize(label: 'ДЖЕКПОТ\n500', value: 500, isCoins: true, color: AppTheme.primary),
+    WheelPrize(label: '30 XP',      value: 30,  isCoins: false, color: AppTheme.legendaryPurple),
+    WheelPrize(label: '10 монет',   value: 10,  isCoins: true,  color: AppTheme.bronze),
+    WheelPrize(label: '200 XP',     value: 200, isCoins: false, color: AppTheme.xpBlue),
+    WheelPrize(label: '75 монет',   value: 75,  isCoins: true,  color: AppTheme.gold),
   ];
-
-  double _currentAngle = 0;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+
+    // Wheel spin controller
+    _wheelController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 4),
+      duration: const Duration(milliseconds: 4800),
     );
-    _animation =
-        CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+
+    // Gentle pulse for the outer glow ring
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+
+    // Button press squish
+    _buttonPressController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+
+    // Glow intensity during spin
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _wheelAnimation = const AlwaysStoppedAnimation(0);
+
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.055).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    _buttonScaleAnimation = Tween<double>(begin: 1.0, end: 0.94).animate(
+      CurvedAnimation(parent: _buttonPressController, curve: Curves.easeOut),
+    );
+
+    _glowAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _glowController, curve: Curves.easeOut),
+    );
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _wheelController.dispose();
+    _pulseController.dispose();
+    _buttonPressController.dispose();
+    _glowController.dispose();
     super.dispose();
   }
 
-  void _spin() {
+  // ─── Spin logic ──────────────────────────────────────────────────────────
+
+  Future<void> _spin() async {
     final state = context.read<AppState>();
     if (_spinning || !state.wheelSpinAvailable) return;
+
+    HapticFeedback.mediumImpact();
 
     final random = Random();
     final prizeIndex = random.nextInt(_prizes.length);
     final segmentAngle = 2 * pi / _prizes.length;
-    // 5 полных оборотов + остановка на выбранном сегменте
-    final targetAngle = (5 * 2 * pi) +
-        (2 * pi - (prizeIndex * segmentAngle) - segmentAngle / 2);
+
+    // Land in the middle of the target segment
+    final normalised = _currentAngle % (2 * pi);
+    final targetOffset = 2 * pi - normalised - (prizeIndex * segmentAngle) - segmentAngle / 2;
+    final targetAngle = _currentAngle + (6 * 2 * pi) + targetOffset;
 
     setState(() => _spinning = true);
+    _pulseController.stop();
+    _glowController.forward();
 
-    _animation = Tween<double>(begin: _currentAngle, end: targetAngle).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _wheelAnimation = Tween<double>(
+      begin: _currentAngle,
+      end: targetAngle,
+    ).animate(CurvedAnimation(parent: _wheelController, curve: _SpinCurve()));
 
-    _controller.forward(from: 0).then((_) {
-      _currentAngle = targetAngle % (2 * pi);
-      setState(() => _spinning = false);
-      final prize = _prizes[prizeIndex];
-      state.applyWheelPrize(prize);
-      _showPrizeDialog(prize);
-    });
+    _lastHapticAngle = _currentAngle;
+    _wheelController.addListener(_onWheelTick);
+
+    await _wheelController.forward(from: 0);
+
+    _wheelController.removeListener(_onWheelTick);
+    _currentAngle = targetAngle % (2 * pi);
+    await _glowController.reverse();
+
+    setState(() => _spinning = false);
+    _pulseController.repeat(reverse: true);
+
+    HapticFeedback.heavyImpact();
+
+    if (!mounted) return;
+    final prize = _prizes[prizeIndex];
+    state.applyWheelPrize(prize);
+    _showPrizeDialog(prize);
   }
 
-  void _showPrizeDialog(WheelPrize prize) {
+  void _onWheelTick() {
+    final segmentAngle = 2 * pi / _prizes.length;
+    final current = _wheelAnimation.value;
+    if ((current - _lastHapticAngle) >= segmentAngle * 0.95) {
+      _lastHapticAngle = current;
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  // ─── Dialogs ──────────────────────────────────────────────────────────────
+
+  void _showInfoDialog() {
+    HapticFeedback.lightImpact();
     showDialog(
       context: context,
       builder: (_) => Dialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        backgroundColor: AppTheme.surface,
         child: Padding(
           padding: const EdgeInsets.all(28),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('🎉', style: TextStyle(fontSize: 56)),
-              const SizedBox(height: 12),
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(colors: [
+                    AppTheme.primary.withOpacity(0.18),
+                    AppTheme.primary.withOpacity(0.05),
+                  ]),
+                ),
+                child: const Icon(Icons.auto_awesome_rounded,
+                    color: AppTheme.primary, size: 26),
+              ),
+              const SizedBox(height: 14),
               Text(
-                'Поздравляем!',
+                'Как работает колесо?',
                 style: GoogleFonts.manrope(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
                   color: AppTheme.textPrimary,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 12),
               Text(
-                'Ты выиграл ${prize.label}',
+                'Колесо Фортуны работает по принципу случайного выбора. Каждый сектор колеса имеет одинаковую вероятность выпадения, поэтому все призы участвуют в розыгрыше на равных условиях.',
                 style: GoogleFonts.manrope(
-                  fontSize: 15,
+                  fontSize: 13.5,
                   color: AppTheme.textSecondary,
+                  height: 1.55,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -111,7 +200,7 @@ class _WheelScreenState extends State<WheelScreen>
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   child: Text(
-                    'Забрать',
+                    'Понятно',
                     style: GoogleFonts.manrope(
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -126,118 +215,76 @@ class _WheelScreenState extends State<WheelScreen>
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final state = context.watch<AppState>();
-    final available = state.wheelSpinAvailable;
-
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      body: SafeArea(
+  void _showPrizeDialog(WheelPrize prize) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        backgroundColor: AppTheme.surface,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          padding: const EdgeInsets.fromLTRB(28, 32, 28, 28),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
+              // Animated trophy
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.4, end: 1.0),
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.elasticOut,
+                builder: (_, v, child) => Transform.scale(scale: v, child: child),
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(colors: [
+                      AppTheme.gold.withOpacity(0.25),
+                      AppTheme.gold.withOpacity(0.05),
+                    ]),
+                  ),
+                  child: const Center(
+                    child: Text('🎉', style: TextStyle(fontSize: 44)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
               Text(
-                'Колесо фортуны',
+                'Поздравляем!',
                 style: GoogleFonts.manrope(
-                  fontSize: 26,
+                  fontSize: 22,
                   fontWeight: FontWeight.w900,
                   color: AppTheme.textPrimary,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                available
-                    ? 'У тебя есть 1 бесплатное вращение!'
-                    : 'Возвращайся завтра за новым вращением',
-                style: GoogleFonts.manrope(
-                  fontSize: 14,
-                  color: available ? AppTheme.questGreen : AppTheme.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              // Колесо
-              SizedBox(
-                width: 300,
-                height: 300,
-                child: Stack(
-                  alignment: Alignment.center,
+              const SizedBox(height: 6),
+              RichText(
+                textAlign: TextAlign.center,
+                text: TextSpan(
+                  style: GoogleFonts.manrope(
+                      fontSize: 15, color: AppTheme.textSecondary),
                   children: [
-                    AnimatedBuilder(
-                      animation: _animation,
-                      builder: (_, child) {
-                        return Transform.rotate(
-                          angle: _spinning
-                              ? _animation.value
-                              : _currentAngle,
-                          child: child,
-                        );
-                      },
-                      child: CustomPaint(
-                        size: const Size(300, 300),
-                        painter: _WheelPainter(_prizes),
+                    const TextSpan(text: 'Ты выиграл '),
+                    TextSpan(
+                      text: prize.label.replaceAll('\n', ' '),
+                      style: GoogleFonts.manrope(
+                        fontWeight: FontWeight.w800,
+                        color: prize.color,
                       ),
                     ),
-                    // Центр
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: AppTheme.surface,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 10,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(Icons.star_rounded,
-                          color: AppTheme.gold, size: 32),
-                    ),
-                    // Указатель
-                    Positioned(
-                      top: -6,
-                      child: Container(
-                        width: 0,
-                        height: 0,
-                        decoration: const BoxDecoration(),
-                        child: CustomPaint(
-                          size: const Size(28, 28),
-                          painter: _PointerPainter(),
-                        ),
-                      ),
-                    ),
+                    const TextSpan(text: '!'),
                   ],
                 ),
               ),
-              const Spacer(),
+              const SizedBox(height: 28),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: (available && !_spinning) ? _spin : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        available ? AppTheme.primary : AppTheme.silver,
-                    minimumSize: const Size(double.infinity, 56),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 0,
-                  ),
+                  onPressed: () => Navigator.pop(context),
                   child: Text(
-                    _spinning
-                        ? 'Крутится...'
-                        : available
-                            ? 'КРУТИТЬ 🎡'
-                            : 'Уже использовано сегодня',
+                    'Забрать награду',
                     style: GoogleFonts.manrope(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
+                        fontWeight: FontWeight.w700, color: Colors.white),
                   ),
                 ),
               ),
@@ -247,7 +294,360 @@ class _WheelScreenState extends State<WheelScreen>
       ),
     );
   }
+
+  // ─── Build ─────────────────────────────────────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+    final available = state.wheelSpinAvailable;
+
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+          child: Column(
+            children: [
+              _buildHeader(available),
+              const SizedBox(height: 8),
+              _buildSubtitle(available),
+              const Spacer(),
+              _buildWheel(available),
+              const Spacer(),
+              _buildSpinButton(available),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── Header row ───────────────────────────────────────────────────────────
+
+  Widget _buildHeader(bool available) {
+    return Row(
+      children: [
+        // Left spacer to balance info button
+        const SizedBox(width: 40),
+        Expanded(
+          child: Text(
+            'Колесо фортуны',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.manrope(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+        ),
+        // Info button
+        GestureDetector(
+          onTap: _showInfoDialog,
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppTheme.surface,
+              border: Border.all(
+                color: AppTheme.primary.withOpacity(0.25),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.info_outline_rounded,
+              color: AppTheme.primary,
+              size: 18,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── Subtitle ─────────────────────────────────────────────────────────────
+
+  Widget _buildSubtitle(bool available) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 350),
+      child: Container(
+        key: ValueKey(available),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: available
+              ? AppTheme.questGreen.withOpacity(0.1)
+              : AppTheme.textSecondary.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          available
+              ? '🎁  У тебя есть 1 бесплатное вращение!'
+              : '⏰  Возвращайся завтра за новым вращением',
+          style: GoogleFonts.manrope(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: available ? AppTheme.questGreen : AppTheme.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── Wheel area ───────────────────────────────────────────────────────────
+
+  Widget _buildWheel(bool available) {
+    const double wheelSize = 300;
+    const double containerSize = 340;
+
+    return SizedBox(
+      width: containerSize,
+      height: containerSize,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Outer pulse glow (only when available and idle)
+          if (available)
+            AnimatedBuilder(
+              animation: _pulseAnimation,
+              builder: (_, child) => Transform.scale(
+                scale: _pulseAnimation.value,
+                child: child,
+              ),
+              child: Container(
+                width: containerSize,
+                height: containerSize,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primary.withOpacity(0.18),
+                      blurRadius: 32,
+                      spreadRadius: 8,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // Spin glow
+          AnimatedBuilder(
+            animation: _glowAnimation,
+            builder: (_, child) => Container(
+              width: containerSize,
+              height: containerSize,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.gold
+                        .withOpacity(0.35 * _glowAnimation.value),
+                    blurRadius: 48,
+                    spreadRadius: 12,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Decorative outer gold ring
+          Container(
+            width: wheelSize + 16,
+            height: wheelSize + 16,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: SweepGradient(
+                colors: List.generate(
+                  16,
+                  (i) => i.isEven
+                      ? AppTheme.gold.withOpacity(0.95)
+                      : const Color(0xFFFFF3C0),
+                ),
+              ),
+            ),
+          ),
+
+          // Wheel
+          AnimatedBuilder(
+            animation: _wheelAnimation,
+            builder: (_, child) => Transform.rotate(
+              angle: _spinning ? _wheelAnimation.value : _currentAngle,
+              child: child,
+            ),
+            child: CustomPaint(
+              size: const Size(wheelSize, wheelSize),
+              painter: _WheelPainter(_prizes),
+            ),
+          ),
+
+          // Center hub
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const RadialGradient(
+                colors: [Color(0xFFFFFFFF), Color(0xFFEEEEF5)],
+                center: Alignment(-0.3, -0.3),
+              ),
+              border: Border.all(color: AppTheme.gold, width: 3.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.22),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Icon(Icons.star_rounded, color: AppTheme.gold, size: 30),
+          ),
+
+          // Pointer arrow (top centre, pointing down into wheel)
+          Positioned(
+            top: (containerSize - wheelSize) / 2 - 18,
+            child: CustomPaint(
+              size: const Size(30, 36),
+              painter: _PointerPainter(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Spin button ──────────────────────────────────────────────────────────
+
+  Widget _buildSpinButton(bool available) {
+    final canSpin = available && !_spinning;
+
+    return AnimatedBuilder(
+      animation: _buttonScaleAnimation,
+      builder: (_, child) => Transform.scale(
+        scale: _buttonScaleAnimation.value,
+        child: child,
+      ),
+      child: GestureDetector(
+        onTapDown: canSpin
+            ? (_) {
+                HapticFeedback.lightImpact();
+                _buttonPressController.forward();
+              }
+            : null,
+        onTapUp: canSpin
+            ? (_) {
+                _buttonPressController.reverse();
+                _spin();
+              }
+            : null,
+        onTapCancel: () => _buttonPressController.reverse(),
+        child: Container(
+          width: double.infinity,
+          height: 62,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: canSpin
+                ? const LinearGradient(
+                    colors: [Color(0xFFFF1744), Color(0xFFE8002D)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            color: canSpin ? null : AppTheme.silver.withOpacity(0.5),
+            boxShadow: canSpin
+                ? [
+                    BoxShadow(
+                      color: AppTheme.primary.withOpacity(0.50),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                      spreadRadius: -2,
+                    ),
+                    BoxShadow(
+                      color: AppTheme.primary.withOpacity(0.15),
+                      blurRadius: 40,
+                      offset: const Offset(0, 16),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (_spinning) ...[
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Крутится...',
+                  style: GoogleFonts.manrope(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ] else if (available) ...[
+                const Text('🎡', style: TextStyle(fontSize: 22)),
+                const SizedBox(width: 10),
+                Text(
+                  'КРУТИТЬ КОЛЕСО',
+                  style: GoogleFonts.manrope(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Text('🎡', style: TextStyle(fontSize: 22)),
+              ] else ...[
+                const Icon(Icons.lock_clock_rounded,
+                    color: Colors.white54, size: 20),
+                const SizedBox(width: 10),
+                Text(
+                  'Использовано сегодня',
+                  style: GoogleFonts.manrope(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white54,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
+
+// ─── Custom spin curve ────────────────────────────────────────────────────────
+// Fast acceleration for ~15% of the journey, then long dramatic deceleration.
+
+class _SpinCurve extends Curve {
+  @override
+  double transformInternal(double t) {
+    if (t < 0.12) {
+      // Quick ramp-up
+      return Curves.easeIn.transform(t / 0.12) * 0.12;
+    }
+    // Sustained ease-out for the dramatic slow-down
+    return 0.12 + Curves.easeOutCubic.transform((t - 0.12) / 0.88) * 0.88;
+  }
+}
+
+// ─── Wheel painter ────────────────────────────────────────────────────────────
 
 class _WheelPainter extends CustomPainter {
   final List<WheelPrize> prizes;
@@ -260,71 +660,166 @@ class _WheelPainter extends CustomPainter {
     final segmentAngle = 2 * pi / prizes.length;
 
     for (int i = 0; i < prizes.length; i++) {
-      final paint = Paint()
-        ..color = prizes[i].color
-        ..style = PaintingStyle.fill;
       final startAngle = i * segmentAngle - pi / 2;
+      final midAngle = startAngle + segmentAngle / 2;
+      final rect = Rect.fromCircle(center: center, radius: radius);
+
+      // Segment fill with gradient (light arc inward from rim)
+      final base = prizes[i].color;
+      final lighter = Color.lerp(base, Colors.white, 0.22)!;
+      final darker = Color.lerp(base, Colors.black, 0.10)!;
+
+      final segPaint = Paint()
+        ..shader = SweepGradient(
+          startAngle: startAngle,
+          endAngle: startAngle + segmentAngle,
+          colors: [lighter, base, darker],
+          stops: const [0.0, 0.55, 1.0],
+        ).createShader(rect)
+        ..style = PaintingStyle.fill;
+
+      canvas.drawArc(rect, startAngle, segmentAngle, true, segPaint);
+
+      // Inner shine arc near rim
+      final shinePaint = Paint()
+        ..color = Colors.white.withOpacity(0.12)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 8
+        ..strokeCap = StrokeCap.butt;
       canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        startAngle,
-        segmentAngle,
-        true,
-        paint,
+        Rect.fromCircle(center: center, radius: radius * 0.90),
+        startAngle + segmentAngle * 0.08,
+        segmentAngle * 0.84,
+        false,
+        shinePaint,
       );
 
-      // Текст
-      final textAngle = startAngle + segmentAngle / 2;
-      final textRadius = radius * 0.62;
-      final textOffset = Offset(
-        center.dx + textRadius * cos(textAngle),
-        center.dy + textRadius * sin(textAngle),
+      // Divider line
+      final dividerPaint = Paint()
+        ..color = Colors.white.withOpacity(0.6)
+        ..strokeWidth = 2.5
+        ..style = PaintingStyle.stroke;
+      canvas.drawLine(
+        center,
+        Offset(center.dx + radius * cos(startAngle),
+            center.dy + radius * sin(startAngle)),
+        dividerPaint,
+      );
+
+      // Emoji icon near the outer rim
+      final iconRadius = radius * 0.78;
+      final iconOffset = Offset(
+        center.dx + iconRadius * cos(midAngle),
+        center.dy + iconRadius * sin(midAngle),
+      );
+      canvas.save();
+      canvas.translate(iconOffset.dx, iconOffset.dy);
+      canvas.rotate(midAngle + pi / 2);
+      final emojiPainter = TextPainter(
+        text: TextSpan(
+          text: prizes[i].isCoins ? '🪙' : '⭐',
+          style: const TextStyle(fontSize: 15),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      emojiPainter.paint(
+          canvas, Offset(-emojiPainter.width / 2, -emojiPainter.height / 2));
+      canvas.restore();
+
+      // Prize label
+      final labelRadius = radius * 0.54;
+      final labelOffset = Offset(
+        center.dx + labelRadius * cos(midAngle),
+        center.dy + labelRadius * sin(midAngle),
       );
       final tp = TextPainter(
         text: TextSpan(
           text: prizes[i].label,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 11,
+            fontSize: 9.5,
             fontWeight: FontWeight.w800,
+            height: 1.3,
+            shadows: [
+              Shadow(
+                  color: Colors.black38,
+                  blurRadius: 5,
+                  offset: Offset(0, 1.5)),
+            ],
           ),
         ),
         textDirection: TextDirection.ltr,
         textAlign: TextAlign.center,
-      )..layout(maxWidth: 70);
+      )..layout(maxWidth: 62);
       canvas.save();
-      canvas.translate(textOffset.dx, textOffset.dy);
-      canvas.rotate(textAngle + pi / 2);
+      canvas.translate(labelOffset.dx, labelOffset.dy);
+      canvas.rotate(midAngle + pi / 2);
       tp.paint(canvas, Offset(-tp.width / 2, -tp.height / 2));
       canvas.restore();
     }
 
-    // Обводка
+    // Outer white border
     canvas.drawCircle(
       center,
       radius,
       Paint()
-        ..color = Colors.white
+        ..color = Colors.white.withOpacity(0.9)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 6,
+        ..strokeWidth = 5,
     );
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _WheelPainter old) => false;
 }
+
+// ─── Pointer painter ──────────────────────────────────────────────────────────
 
 class _PointerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = AppTheme.primary;
-    final path = Path()
-      ..moveTo(size.width / 2, size.height)
+    // Drop shadow
+    canvas.drawPath(
+      Path()
+        ..moveTo(size.width / 2, size.height + 4)
+        ..lineTo(-2, 2)
+        ..lineTo(size.width + 2, 2)
+        ..close(),
+      Paint()
+        ..color = Colors.black.withOpacity(0.20)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+    );
+
+    // Body with gradient
+    final bodyPath = Path()
+      ..moveTo(size.width / 2, size.height)  // tip (bottom, points into wheel)
       ..lineTo(0, 0)
       ..lineTo(size.width, 0)
       ..close();
-    canvas.drawPath(path, paint);
+
+    canvas.drawPath(
+      bodyPath,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppTheme.primaryLight,
+            AppTheme.primary,
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height)),
+    );
+
+    // White highlight on left edge
+    canvas.drawPath(
+      bodyPath,
+      Paint()
+        ..color = Colors.white.withOpacity(0.35)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter _) => false;
 }
