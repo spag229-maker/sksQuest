@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../state/app_state.dart';
-import 'login_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -17,7 +16,7 @@ class ProfileScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // Шапка
+            // ── Header ──────────────────────────────────────────────────────
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -32,11 +31,12 @@ class ProfileScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.arrow_back_ios_rounded,
-                            color: Colors.white),
-                      ),
+                      if (Navigator.of(context).canPop())
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.arrow_back_ios_rounded,
+                              color: Colors.white),
+                        ),
                       Text(
                         'Профиль',
                         style: GoogleFonts.manrope(
@@ -52,36 +52,33 @@ class ProfileScreen extends StatelessWidget {
                     radius: 40,
                     backgroundColor: Colors.white.withValues(alpha: 0.2),
                     child: Text(
-                      user.name[0],
+                      user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
                       style: GoogleFonts.manrope(
-                        fontSize: 36,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
+                          fontSize: 36,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white),
                     ),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     user.name,
                     style: GoogleFonts.manrope(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '${user.league} лига • Уровень ${user.level}',
                     style: GoogleFonts.manrope(
-                      fontSize: 13,
-                      color: Colors.white.withValues(alpha: 0.8),
-                    ),
+                        fontSize: 13,
+                        color: Colors.white.withValues(alpha: 0.8)),
                   ),
                 ],
               ),
             ),
 
-            // Информация
+            // ── Body ─────────────────────────────────────────────────────────
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.all(16),
@@ -90,58 +87,48 @@ class ProfileScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   _InfoCard(children: [
                     _InfoRow(
-                      icon: Icons.person_rounded,
-                      label: 'Имя',
-                      value: user.name,
-                    ),
+                        icon: Icons.person_rounded,
+                        label: 'Имя',
+                        value: user.name),
                     _Divider(),
                     _InfoRow(
-                      icon: Icons.phone_rounded,
-                      label: 'Телефон',
-                      value: user.phone,
-                    ),
+                        icon: Icons.phone_rounded,
+                        label: 'Телефон',
+                        value: user.phone.isEmpty ? '—' : user.phone),
                   ]),
                   const SizedBox(height: 20),
                   _SectionTitle('Статистика'),
                   const SizedBox(height: 8),
                   _InfoCard(children: [
                     _InfoRow(
-                      icon: Icons.bolt_rounded,
-                      label: 'Опыт (XP)',
-                      value: '${user.xp} XP',
-                      valueColor: AppTheme.xpBlue,
-                    ),
+                        icon: Icons.bolt_rounded,
+                        label: 'Опыт (XP)',
+                        value: '${user.xp} XP',
+                        valueColor: AppTheme.xpBlue),
                     _Divider(),
                     _InfoRow(
-                      icon: Icons.monetization_on_rounded,
-                      label: 'Монеты',
-                      value: '${user.coins} 🪙',
-                      valueColor: AppTheme.gold,
-                    ),
+                        icon: Icons.monetization_on_rounded,
+                        label: 'Монеты',
+                        value: '${user.coins} 🪙',
+                        valueColor: AppTheme.gold),
                     _Divider(),
                     _InfoRow(
-                      icon: Icons.local_fire_department_rounded,
-                      label: 'Серия входов',
-                      value: '${user.streak} дней',
-                      valueColor: AppTheme.primary,
-                    ),
+                        icon: Icons.local_fire_department_rounded,
+                        label: 'Серия входов',
+                        value: '${user.streak} дней',
+                        valueColor: AppTheme.primary),
                     _Divider(),
                     _InfoRow(
-                      icon: Icons.military_tech_rounded,
-                      label: 'Лига',
-                      value: user.league,
-                    ),
+                        icon: Icons.military_tech_rounded,
+                        label: 'Лига',
+                        value: user.league),
                   ]),
                   const SizedBox(height: 32),
-
-                  // Кнопка выхода
+                  // ── Logout button ──────────────────────────────────────────
                   ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                            builder: (_) => const LoginScreen()),
-                        (route) => false,
-                      );
+                    onPressed: () async {
+                      await context.read<AppState>().logout();
+                      // _AuthGate in main.dart handles redirect automatically
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
@@ -156,10 +143,9 @@ class ProfileScreen extends StatelessWidget {
                     child: Text(
                       'Выйти из аккаунта',
                       style: GoogleFonts.manrope(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.primary,
-                      ),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.primary),
                     ),
                   ),
                 ],
@@ -175,35 +161,27 @@ class ProfileScreen extends StatelessWidget {
 class _SectionTitle extends StatelessWidget {
   final String text;
   const _SectionTitle(this.text);
-
   @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: GoogleFonts.manrope(
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: AppTheme.textSecondary,
-        letterSpacing: 0.5,
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Text(
+        text,
+        style: GoogleFonts.manrope(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.textSecondary,
+            letterSpacing: 0.5),
+      );
 }
 
 class _InfoCard extends StatelessWidget {
   final List<Widget> children;
   const _InfoCard({required this.children});
-
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(children: children),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(16)),
+        child: Column(children: children),
+      );
 }
 
 class _InfoRow extends StatelessWidget {
@@ -211,46 +189,34 @@ class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
   final Color? valueColor;
-  const _InfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.valueColor,
-  });
-
+  const _InfoRow(
+      {required this.icon,
+      required this.label,
+      required this.value,
+      this.valueColor});
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
-        children: [
-          Icon(icon, color: AppTheme.primary, size: 20),
-          const SizedBox(width: 12),
-          Text(
-            label,
-            style: GoogleFonts.manrope(
-              fontSize: 14,
-              color: AppTheme.textSecondary,
-            ),
-          ),
-          const Spacer(),
-          Text(
-            value,
-            style: GoogleFonts.manrope(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: valueColor ?? AppTheme.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Icon(icon, color: AppTheme.primary, size: 20),
+            const SizedBox(width: 12),
+            Text(label,
+                style: GoogleFonts.manrope(
+                    fontSize: 14, color: AppTheme.textSecondary)),
+            const Spacer(),
+            Text(value,
+                style: GoogleFonts.manrope(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: valueColor ?? AppTheme.textPrimary)),
+          ],
+        ),
+      );
 }
 
 class _Divider extends StatelessWidget {
   @override
-  Widget build(BuildContext context) {
-    return const Divider(height: 1, indent: 48);
-  }
+  Widget build(BuildContext context) =>
+      const Divider(height: 1, indent: 48);
 }

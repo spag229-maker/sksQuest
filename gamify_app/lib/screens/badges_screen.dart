@@ -1,70 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
+import '../data/milestones_data.dart';
 
 // ─── Data model ───────────────────────────────────────────────────────────────
 
-class Badge {
-  final String id;
-  final String emoji;        // shown when earned
+class _BadgeData {
+  final String imagePath;
   final String name;
-  final String description;  // how to earn
-  final String milestone;    // e.g. "7 дней подряд"
-  final Color color;         // accent when earned
-  final bool earned;
+  final String condition;
+  final Color color;
+  final int milestoneIndex;
 
-  const Badge({
-    required this.id,
-    required this.emoji,
+  const _BadgeData({
+    required this.imagePath,
     required this.name,
-    required this.description,
-    required this.milestone,
+    required this.condition,
     required this.color,
-    this.earned = false,
+    required this.milestoneIndex,
   });
 }
 
-const _badges = [
-  Badge(
-    id: 'first_step',
-    emoji: '🚀',
-    name: 'Первый шаг',
-    description: 'Войди в приложение первый раз',
-    milestone: 'Вход в систему',
-    color: AppTheme.questGreen,
-    earned: true, // ← единственный полученный
-  ),
-  Badge(
-    id: 'week_streak',
-    emoji: '🔥',
-    name: 'Огненная неделя',
-    description: 'Заходи 7 дней подряд',
-    milestone: '7 дней подряд',
-    color: AppTheme.primary,
-  ),
-  Badge(
-    id: 'coin_collector',
-    emoji: '💰',
-    name: 'Монетный двор',
-    description: 'Накопи 1000 монет',
-    milestone: '1000 монет',
-    color: AppTheme.gold,
-  ),
-  Badge(
-    id: 'wheel_master',
-    emoji: '🎡',
-    name: 'Мастер колеса',
-    description: 'Выиграй джекпот на колесе',
-    milestone: 'Джекпот ×1',
+const _badgeData = [
+  _BadgeData(
+    imagePath: 'assets/images/activity.png',
+    name: 'Активист',
+    condition: 'Закройте веху «Ежедневная активность»',
     color: AppTheme.legendaryPurple,
+    milestoneIndex: 0,
   ),
-  Badge(
-    id: 'legend',
-    emoji: '👑',
-    name: 'Легенда',
-    description: 'Достигни 10 уровня',
-    milestone: 'Уровень 10',
+  _BadgeData(
+    imagePath: 'assets/images/quests.png',
+    name: 'Мастер квестов',
+    condition: 'Закройте веху «Выполнение квестов»',
     color: AppTheme.xpBlue,
+    milestoneIndex: 1,
+  ),
+  _BadgeData(
+    imagePath: 'assets/images/image.png',
+    name: 'Везунчик',
+    condition: 'Закройте веху «Колесо фортуны и удача»',
+    color: AppTheme.primary,
+    milestoneIndex: 2,
+  ),
+  _BadgeData(
+    imagePath: 'assets/images/lvl.png',
+    name: 'Легенда',
+    condition: 'Закройте веху «Уровень аккаунта»',
+    color: AppTheme.questGreen,
+    milestoneIndex: 3,
+  ),
+  _BadgeData(
+    imagePath: 'assets/images/league.png',
+    name: 'Чемпион лиг',
+    condition: 'Закройте веху «Ранги и лиги»',
+    color: AppTheme.gold,
+    milestoneIndex: 4,
   ),
 ];
 
@@ -75,7 +66,8 @@ class BadgesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final earned = _badges.where((b) => b.earned).length;
+    final earnedCount =
+        _badgeData.where((b) => milestones[b.milestoneIndex].completed).length;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -117,18 +109,18 @@ class BadgesScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Progress pill
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: AppTheme.primary.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                          color: AppTheme.primary.withOpacity(0.2), width: 1.5),
+                          color: AppTheme.primary.withOpacity(0.2),
+                          width: 1.5),
                     ),
                     child: Text(
-                      '$earned / ${_badges.length}',
+                      '$earnedCount / ${_badgeData.length}',
                       style: GoogleFonts.manrope(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
@@ -142,46 +134,42 @@ class BadgesScreen extends StatelessWidget {
             const SizedBox(height: 6),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Text(
-                    'Собери все бейджи — стань легендой',
-                    style: GoogleFonts.manrope(
-                        fontSize: 13, color: AppTheme.textSecondary),
-                  ),
-                ],
+              child: Text(
+                'Закрывай вехи достижений — получай бейджи',
+                style: GoogleFonts.manrope(
+                    fontSize: 13, color: AppTheme.textSecondary),
               ),
             ),
             const SizedBox(height: 8),
-
-            // ── Overall progress bar ──
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: earned / _badges.length,
-                      minHeight: 8,
-                      backgroundColor: AppTheme.textHint.withOpacity(0.15),
-                      valueColor:
-                          const AlwaysStoppedAnimation(AppTheme.primary),
-                    ),
-                  ),
-                ],
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: earnedCount / _badgeData.length,
+                  minHeight: 8,
+                  backgroundColor: AppTheme.textHint.withOpacity(0.15),
+                  valueColor:
+                      const AlwaysStoppedAnimation(AppTheme.primary),
+                ),
               ),
             ),
             const SizedBox(height: 8),
-
-            // ── List ──
             Expanded(
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
-                itemCount: _badges.length,
+                itemCount: _badgeData.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (_, i) => _BadgeTile(badge: _badges[i]),
+                itemBuilder: (_, i) {
+                  final badge = _badgeData[i];
+                  final milestone = milestones[badge.milestoneIndex];
+                  final earned = milestone.completed;
+                  return _BadgeTile(
+                    badge: badge,
+                    earned: earned,
+                    milestone: milestone,
+                  );
+                },
               ),
             ),
           ],
@@ -194,21 +182,31 @@ class BadgesScreen extends StatelessWidget {
 // ─── Badge tile ───────────────────────────────────────────────────────────────
 
 class _BadgeTile extends StatelessWidget {
-  final Badge badge;
-  const _BadgeTile({required this.badge});
+  final _BadgeData badge;
+  final bool earned;
+  final Milestone milestone;
+
+  const _BadgeTile({
+    required this.badge,
+    required this.earned,
+    required this.milestone,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final unlocked = milestone.unlockedCount;
+    final total = milestone.achievements.length;
+
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: badge.earned
+        border: earned
             ? Border.all(color: badge.color.withOpacity(0.35), width: 1.5)
             : null,
         boxShadow: [
           BoxShadow(
-            color: badge.earned
+            color: earned
                 ? badge.color.withOpacity(0.10)
                 : Colors.black.withOpacity(0.04),
             blurRadius: 12,
@@ -220,11 +218,11 @@ class _BadgeTile extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            // ── Badge icon ──
-            _BadgeIcon(badge: badge),
+            _BadgeIcon(
+                imagePath: badge.imagePath,
+                color: badge.color,
+                earned: earned),
             const SizedBox(width: 16),
-
-            // ── Text ──
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,12 +234,12 @@ class _BadgeTile extends StatelessWidget {
                         style: GoogleFonts.manrope(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
-                          color: badge.earned
+                          color: earned
                               ? AppTheme.textPrimary
                               : AppTheme.textSecondary,
                         ),
                       ),
-                      if (badge.earned) ...[
+                      if (earned) ...[
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -264,19 +262,18 @@ class _BadgeTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    badge.description,
+                    badge.condition,
                     style: GoogleFonts.manrope(
                       fontSize: 12,
                       color: AppTheme.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // Milestone chip
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 9, vertical: 4),
                     decoration: BoxDecoration(
-                      color: badge.earned
+                      color: earned
                           ? badge.color.withOpacity(0.09)
                           : AppTheme.textHint.withOpacity(0.10),
                       borderRadius: BorderRadius.circular(8),
@@ -285,23 +282,22 @@ class _BadgeTile extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          badge.earned
+                          earned
                               ? Icons.check_circle_rounded
                               : Icons.lock_outline_rounded,
                           size: 11,
-                          color: badge.earned
-                              ? badge.color
-                              : AppTheme.textHint,
+                          color:
+                              earned ? badge.color : AppTheme.textHint,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          badge.milestone,
+                          earned
+                              ? 'Веха закрыта'
+                              : '$unlocked / $total выполнено',
                           style: GoogleFonts.manrope(
                             fontSize: 10.5,
                             fontWeight: FontWeight.w700,
-                            color: badge.earned
-                                ? badge.color
-                                : AppTheme.textHint,
+                            color: earned ? badge.color : AppTheme.textHint,
                           ),
                         ),
                       ],
@@ -317,75 +313,52 @@ class _BadgeTile extends StatelessWidget {
   }
 }
 
-// ─── Badge icon widget ────────────────────────────────────────────────────────
+// ─── Badge icon ───────────────────────────────────────────────────────────────
 
 class _BadgeIcon extends StatelessWidget {
-  final Badge badge;
-  const _BadgeIcon({required this.badge});
+  final String imagePath;
+  final Color color;
+  final bool earned;
+
+  const _BadgeIcon({
+    required this.imagePath,
+    required this.color,
+    required this.earned,
+  });
 
   @override
   Widget build(BuildContext context) {
-    if (badge.earned) {
-      // Full coloured hexagon-ish badge
+    if (earned) {
       return Container(
         width: 64,
         height: 64,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [
-              Color.lerp(badge.color, Colors.white, 0.3)!,
-              badge.color,
-            ],
-            center: const Alignment(-0.3, -0.3),
-          ),
           boxShadow: [
             BoxShadow(
-              color: badge.color.withOpacity(0.40),
+              color: color.withOpacity(0.40),
               blurRadius: 16,
               offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Outer ring
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                    color: Colors.white.withOpacity(0.4), width: 2),
-              ),
-            ),
-            Text(badge.emoji, style: const TextStyle(fontSize: 28)),
-          ],
-        ),
+        child: Image.asset(imagePath,
+            width: 64, height: 64, fit: BoxFit.contain),
       );
     }
 
-    // Locked — grey silhouette
-    return Container(
+    return SizedBox(
       width: 64,
       height: 64,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppTheme.textHint.withOpacity(0.10),
-        border:
-            Border.all(color: AppTheme.textHint.withOpacity(0.20), width: 2),
-      ),
-      child: Center(
-        child: ColorFiltered(
-          colorFilter: const ColorFilter.matrix([
-            0.2, 0.2, 0.2, 0, 0,
-            0.2, 0.2, 0.2, 0, 0,
-            0.2, 0.2, 0.2, 0, 0,
-            0,   0,   0,   0.25, 0,
-          ]),
-          child: Text(badge.emoji, style: const TextStyle(fontSize: 28)),
-        ),
+      child: ColorFiltered(
+        colorFilter: const ColorFilter.matrix([
+          0.25, 0.25, 0.25, 0, 0,
+          0.25, 0.25, 0.25, 0, 0,
+          0.25, 0.25, 0.25, 0, 0,
+          0,    0,    0,    0.3, 0,
+        ]),
+        child: Image.asset(imagePath,
+            width: 64, height: 64, fit: BoxFit.contain),
       ),
     );
   }

@@ -13,7 +13,7 @@ class ShopItem {
   final String name;
   final String description;
   final int price;
-  final String tag; // 'Хит', 'Новинка', 'Редкий', ''
+  final String tag;
 
   const ShopItem({
     required this.id,
@@ -206,7 +206,7 @@ class _ShopScreenState extends State<ShopScreen> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                              color: Colors.black.withOpacity(0.06),
+                              color: Colors.black.withValues(alpha: 0.06),
                               blurRadius: 8,
                               offset: const Offset(0, 2)),
                         ],
@@ -226,15 +226,15 @@ class _ShopScreenState extends State<ShopScreen> {
                       ),
                     ),
                   ),
-                  // Coins badge
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: AppTheme.gold.withOpacity(0.12),
+                      color: AppTheme.gold.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                          color: AppTheme.gold.withOpacity(0.35), width: 1.5),
+                          color: AppTheme.gold.withValues(alpha: 0.35),
+                          width: 1.5),
                     ),
                     child: Row(
                       children: [
@@ -323,11 +323,13 @@ class _ShopCard extends StatelessWidget {
             color: AppTheme.surface,
             borderRadius: BorderRadius.circular(20),
             border: bought
-                ? Border.all(color: AppTheme.questGreen.withOpacity(0.5), width: 1.5)
+                ? Border.all(
+                    color: AppTheme.questGreen.withValues(alpha: 0.5),
+                    width: 1.5)
                 : Border.all(color: Colors.transparent),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.055),
+                color: Colors.black.withValues(alpha: 0.055),
                 blurRadius: 12,
                 offset: const Offset(0, 3),
               ),
@@ -342,9 +344,9 @@ class _ShopCard extends StatelessWidget {
                   Container(
                     width: double.infinity,
                     height: 110,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: AppTheme.background,
-                      borderRadius: const BorderRadius.vertical(
+                      borderRadius: BorderRadius.vertical(
                           top: Radius.circular(20)),
                     ),
                     child: Center(
@@ -352,7 +354,6 @@ class _ShopCard extends StatelessWidget {
                           style: const TextStyle(fontSize: 52)),
                     ),
                   ),
-                  // Tag pill
                   if (item.tag.isNotEmpty && !bought)
                     Positioned(
                       top: 10,
@@ -375,7 +376,6 @@ class _ShopCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                  // Bought overlay
                   if (bought)
                     Positioned(
                       top: 10,
@@ -422,13 +422,12 @@ class _ShopCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 10),
-                    // Price button
                     bought
                         ? Container(
                             width: double.infinity,
                             height: 34,
                             decoration: BoxDecoration(
-                              color: AppTheme.questGreen.withOpacity(0.10),
+                              color: AppTheme.questGreen.withValues(alpha: 0.10),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             alignment: Alignment.center,
@@ -447,7 +446,7 @@ class _ShopCard extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: canAfford
                                   ? AppTheme.primary
-                                  : AppTheme.silver.withOpacity(0.25),
+                                  : AppTheme.silver.withValues(alpha: 0.25),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             alignment: Alignment.center,
@@ -503,12 +502,11 @@ class _ConfirmSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle
           Container(
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppTheme.textHint.withOpacity(0.4),
+              color: AppTheme.textHint.withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -542,7 +540,9 @@ class _ConfirmSheet extends StatelessWidget {
               children: [
                 _CostRow(label: 'Стоимость', value: '🪙 ${item.price}'),
                 Container(
-                    width: 1, height: 28, color: AppTheme.textHint.withOpacity(0.2)),
+                    width: 1,
+                    height: 28,
+                    color: AppTheme.textHint.withValues(alpha: 0.2)),
                 _CostRow(label: 'Остаток', value: '🪙 $remaining'),
               ],
             ),
@@ -556,7 +556,8 @@ class _ConfirmSheet extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 52),
                     side: BorderSide(
-                        color: AppTheme.textHint.withOpacity(0.4), width: 1.5),
+                        color: AppTheme.textHint.withValues(alpha: 0.4),
+                        width: 1.5),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
                   ),

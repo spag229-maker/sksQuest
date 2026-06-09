@@ -31,39 +31,35 @@ class _WheelScreenState extends State<WheelScreen>
   double _lastHapticAngle = 0;
 
   final List<WheelPrize> _prizes = const [
-    WheelPrize(label: '50 монет',   value: 50,  isCoins: true,  color: AppTheme.gold),
-    WheelPrize(label: '100 XP',     value: 100, isCoins: false, color: AppTheme.xpBlue),
-    WheelPrize(label: '20 монет',   value: 20,  isCoins: true,  color: AppTheme.questGreen),
-    WheelPrize(label: 'ДЖЕКПОТ\n500', value: 500, isCoins: true, color: AppTheme.primary),
-    WheelPrize(label: '30 XP',      value: 30,  isCoins: false, color: AppTheme.legendaryPurple),
-    WheelPrize(label: '10 монет',   value: 10,  isCoins: true,  color: AppTheme.bronze),
-    WheelPrize(label: '200 XP',     value: 200, isCoins: false, color: AppTheme.xpBlue),
-    WheelPrize(label: '75 монет',   value: 75,  isCoins: true,  color: AppTheme.gold),
+    WheelPrize(label: '50 монет',    value: 50,  isCoins: true,  color: AppTheme.gold),
+    WheelPrize(label: '100 XP',      value: 100, isCoins: false, color: AppTheme.xpBlue),
+    WheelPrize(label: '20 монет',    value: 20,  isCoins: true,  color: AppTheme.questGreen),
+    WheelPrize(label: 'ДЖЕКПОТ\n500',value: 500, isCoins: true,  color: AppTheme.primary),
+    WheelPrize(label: '30 XP',       value: 30,  isCoins: false, color: AppTheme.legendaryPurple),
+    WheelPrize(label: '10 монет',    value: 10,  isCoins: true,  color: AppTheme.bronze),
+    WheelPrize(label: '200 XP',      value: 200, isCoins: false, color: AppTheme.xpBlue),
+    WheelPrize(label: '75 монет',    value: 75,  isCoins: true,  color: AppTheme.gold),
   ];
 
   @override
   void initState() {
     super.initState();
 
-    // Wheel spin controller
     _wheelController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 4800),
     );
 
-    // Gentle pulse for the outer glow ring
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
 
-    // Button press squish
     _buttonPressController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 100),
     );
 
-    // Glow intensity during spin
     _glowController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -105,9 +101,11 @@ class _WheelScreenState extends State<WheelScreen>
     final prizeIndex = random.nextInt(_prizes.length);
     final segmentAngle = 2 * pi / _prizes.length;
 
-    // Land in the middle of the target segment
     final normalised = _currentAngle % (2 * pi);
-    final targetOffset = 2 * pi - normalised - (prizeIndex * segmentAngle) - segmentAngle / 2;
+    final targetOffset = 2 * pi -
+        normalised -
+        (prizeIndex * segmentAngle) -
+        segmentAngle / 2;
     final targetAngle = _currentAngle + (6 * 2 * pi) + targetOffset;
 
     setState(() => _spinning = true);
@@ -117,7 +115,8 @@ class _WheelScreenState extends State<WheelScreen>
     _wheelAnimation = Tween<double>(
       begin: _currentAngle,
       end: targetAngle,
-    ).animate(CurvedAnimation(parent: _wheelController, curve: _SpinCurve()));
+    ).animate(
+        CurvedAnimation(parent: _wheelController, curve: _SpinCurve()));
 
     _lastHapticAngle = _currentAngle;
     _wheelController.addListener(_onWheelTick);
@@ -135,6 +134,7 @@ class _WheelScreenState extends State<WheelScreen>
 
     if (!mounted) return;
     final prize = _prizes[prizeIndex];
+    // applyWheelPrize now takes WheelPrize object
     state.applyWheelPrize(prize);
     _showPrizeDialog(prize);
   }
@@ -168,8 +168,8 @@ class _WheelScreenState extends State<WheelScreen>
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(colors: [
-                    AppTheme.primary.withOpacity(0.18),
-                    AppTheme.primary.withOpacity(0.05),
+                    AppTheme.primary.withValues(alpha: 0.18),
+                    AppTheme.primary.withValues(alpha: 0.05),
                   ]),
                 ),
                 child: const Icon(Icons.auto_awesome_rounded,
@@ -186,7 +186,9 @@ class _WheelScreenState extends State<WheelScreen>
               ),
               const SizedBox(height: 12),
               Text(
-                'Колесо Фортуны работает по принципу случайного выбора. Каждый сектор колеса имеет одинаковую вероятность выпадения, поэтому все призы участвуют в розыгрыше на равных условиях.',
+                'Колесо Фортуны работает по принципу случайного выбора. '
+                'Каждый сектор колеса имеет одинаковую вероятность выпадения, '
+                'поэтому все призы участвуют в розыгрыше на равных условиях.',
                 style: GoogleFonts.manrope(
                   fontSize: 13.5,
                   color: AppTheme.textSecondary,
@@ -227,20 +229,20 @@ class _WheelScreenState extends State<WheelScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Animated trophy
               TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0.4, end: 1.0),
                 duration: const Duration(milliseconds: 500),
                 curve: Curves.elasticOut,
-                builder: (_, v, child) => Transform.scale(scale: v, child: child),
+                builder: (_, v, child) =>
+                    Transform.scale(scale: v, child: child),
                 child: Container(
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(colors: [
-                      AppTheme.gold.withOpacity(0.25),
-                      AppTheme.gold.withOpacity(0.05),
+                      AppTheme.gold.withValues(alpha: 0.25),
+                      AppTheme.gold.withValues(alpha: 0.05),
                     ]),
                   ),
                   child: const Center(
@@ -323,12 +325,9 @@ class _WheelScreenState extends State<WheelScreen>
     );
   }
 
-  // ─── Header row ───────────────────────────────────────────────────────────
-
   Widget _buildHeader(bool available) {
     return Row(
       children: [
-        // Left spacer to balance info button
         const SizedBox(width: 40),
         Expanded(
           child: Text(
@@ -341,7 +340,6 @@ class _WheelScreenState extends State<WheelScreen>
             ),
           ),
         ),
-        // Info button
         GestureDetector(
           onTap: _showInfoDialog,
           child: Container(
@@ -351,12 +349,12 @@ class _WheelScreenState extends State<WheelScreen>
               shape: BoxShape.circle,
               color: AppTheme.surface,
               border: Border.all(
-                color: AppTheme.primary.withOpacity(0.25),
+                color: AppTheme.primary.withValues(alpha: 0.25),
                 width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
+                  color: Colors.black.withValues(alpha: 0.06),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -373,8 +371,6 @@ class _WheelScreenState extends State<WheelScreen>
     );
   }
 
-  // ─── Subtitle ─────────────────────────────────────────────────────────────
-
   Widget _buildSubtitle(bool available) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 350),
@@ -383,8 +379,8 @@ class _WheelScreenState extends State<WheelScreen>
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           color: available
-              ? AppTheme.questGreen.withOpacity(0.1)
-              : AppTheme.textSecondary.withOpacity(0.08),
+              ? AppTheme.questGreen.withValues(alpha: 0.1)
+              : AppTheme.textSecondary.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
@@ -401,8 +397,6 @@ class _WheelScreenState extends State<WheelScreen>
     );
   }
 
-  // ─── Wheel area ───────────────────────────────────────────────────────────
-
   Widget _buildWheel(bool available) {
     const double wheelSize = 300;
     const double containerSize = 340;
@@ -413,7 +407,6 @@ class _WheelScreenState extends State<WheelScreen>
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Outer pulse glow (only when available and idle)
           if (available)
             AnimatedBuilder(
               animation: _pulseAnimation,
@@ -428,7 +421,7 @@ class _WheelScreenState extends State<WheelScreen>
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primary.withOpacity(0.18),
+                      color: AppTheme.primary.withValues(alpha: 0.18),
                       blurRadius: 32,
                       spreadRadius: 8,
                     ),
@@ -437,7 +430,6 @@ class _WheelScreenState extends State<WheelScreen>
               ),
             ),
 
-          // Spin glow
           AnimatedBuilder(
             animation: _glowAnimation,
             builder: (_, child) => Container(
@@ -448,7 +440,7 @@ class _WheelScreenState extends State<WheelScreen>
                 boxShadow: [
                   BoxShadow(
                     color: AppTheme.gold
-                        .withOpacity(0.35 * _glowAnimation.value),
+                        .withValues(alpha: 0.35 * _glowAnimation.value),
                     blurRadius: 48,
                     spreadRadius: 12,
                   ),
@@ -457,7 +449,6 @@ class _WheelScreenState extends State<WheelScreen>
             ),
           ),
 
-          // Decorative outer gold ring
           Container(
             width: wheelSize + 16,
             height: wheelSize + 16,
@@ -467,14 +458,13 @@ class _WheelScreenState extends State<WheelScreen>
                 colors: List.generate(
                   16,
                   (i) => i.isEven
-                      ? AppTheme.gold.withOpacity(0.95)
+                      ? AppTheme.gold.withValues(alpha: 0.95)
                       : const Color(0xFFFFF3C0),
                 ),
               ),
             ),
           ),
 
-          // Wheel
           AnimatedBuilder(
             animation: _wheelAnimation,
             builder: (_, child) => Transform.rotate(
@@ -487,7 +477,6 @@ class _WheelScreenState extends State<WheelScreen>
             ),
           ),
 
-          // Center hub
           Container(
             width: 58,
             height: 58,
@@ -500,16 +489,16 @@ class _WheelScreenState extends State<WheelScreen>
               border: Border.all(color: AppTheme.gold, width: 3.5),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.22),
+                  color: Colors.black.withValues(alpha: 0.22),
                   blurRadius: 14,
                   offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: const Icon(Icons.star_rounded, color: AppTheme.gold, size: 30),
+            child: const Icon(Icons.star_rounded,
+                color: AppTheme.gold, size: 30),
           ),
 
-          // Pointer arrow (top centre, pointing down into wheel)
           Positioned(
             top: (containerSize - wheelSize) / 2 - 18,
             child: CustomPaint(
@@ -521,8 +510,6 @@ class _WheelScreenState extends State<WheelScreen>
       ),
     );
   }
-
-  // ─── Spin button ──────────────────────────────────────────────────────────
 
   Widget _buildSpinButton(bool available) {
     final canSpin = available && !_spinning;
@@ -559,17 +546,17 @@ class _WheelScreenState extends State<WheelScreen>
                     end: Alignment.bottomRight,
                   )
                 : null,
-            color: canSpin ? null : AppTheme.silver.withOpacity(0.5),
+            color: canSpin ? null : AppTheme.silver.withValues(alpha: 0.5),
             boxShadow: canSpin
                 ? [
                     BoxShadow(
-                      color: AppTheme.primary.withOpacity(0.50),
+                      color: AppTheme.primary.withValues(alpha: 0.50),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                       spreadRadius: -2,
                     ),
                     BoxShadow(
-                      color: AppTheme.primary.withOpacity(0.15),
+                      color: AppTheme.primary.withValues(alpha: 0.15),
                       blurRadius: 40,
                       offset: const Offset(0, 16),
                     ),
@@ -633,17 +620,15 @@ class _WheelScreenState extends State<WheelScreen>
 }
 
 // ─── Custom spin curve ────────────────────────────────────────────────────────
-// Fast acceleration for ~15% of the journey, then long dramatic deceleration.
 
 class _SpinCurve extends Curve {
   @override
   double transformInternal(double t) {
     if (t < 0.12) {
-      // Quick ramp-up
       return Curves.easeIn.transform(t / 0.12) * 0.12;
     }
-    // Sustained ease-out for the dramatic slow-down
-    return 0.12 + Curves.easeOutCubic.transform((t - 0.12) / 0.88) * 0.88;
+    return 0.12 +
+        Curves.easeOutCubic.transform((t - 0.12) / 0.88) * 0.88;
   }
 }
 
@@ -664,7 +649,6 @@ class _WheelPainter extends CustomPainter {
       final midAngle = startAngle + segmentAngle / 2;
       final rect = Rect.fromCircle(center: center, radius: radius);
 
-      // Segment fill with gradient (light arc inward from rim)
       final base = prizes[i].color;
       final lighter = Color.lerp(base, Colors.white, 0.22)!;
       final darker = Color.lerp(base, Colors.black, 0.10)!;
@@ -680,9 +664,8 @@ class _WheelPainter extends CustomPainter {
 
       canvas.drawArc(rect, startAngle, segmentAngle, true, segPaint);
 
-      // Inner shine arc near rim
       final shinePaint = Paint()
-        ..color = Colors.white.withOpacity(0.12)
+        ..color = Colors.white.withValues(alpha: 0.12)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 8
         ..strokeCap = StrokeCap.butt;
@@ -694,9 +677,8 @@ class _WheelPainter extends CustomPainter {
         shinePaint,
       );
 
-      // Divider line
       final dividerPaint = Paint()
-        ..color = Colors.white.withOpacity(0.6)
+        ..color = Colors.white.withValues(alpha: 0.6)
         ..strokeWidth = 2.5
         ..style = PaintingStyle.stroke;
       canvas.drawLine(
@@ -706,7 +688,6 @@ class _WheelPainter extends CustomPainter {
         dividerPaint,
       );
 
-      // Emoji icon near the outer rim
       final iconRadius = radius * 0.78;
       final iconOffset = Offset(
         center.dx + iconRadius * cos(midAngle),
@@ -722,11 +703,10 @@ class _WheelPainter extends CustomPainter {
         ),
         textDirection: TextDirection.ltr,
       )..layout();
-      emojiPainter.paint(
-          canvas, Offset(-emojiPainter.width / 2, -emojiPainter.height / 2));
+      emojiPainter.paint(canvas,
+          Offset(-emojiPainter.width / 2, -emojiPainter.height / 2));
       canvas.restore();
 
-      // Prize label
       final labelRadius = radius * 0.54;
       final labelOffset = Offset(
         center.dx + labelRadius * cos(midAngle),
@@ -758,12 +738,11 @@ class _WheelPainter extends CustomPainter {
       canvas.restore();
     }
 
-    // Outer white border
     canvas.drawCircle(
       center,
       radius,
       Paint()
-        ..color = Colors.white.withOpacity(0.9)
+        ..color = Colors.white.withValues(alpha: 0.9)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 5,
     );
@@ -778,7 +757,6 @@ class _WheelPainter extends CustomPainter {
 class _PointerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    // Drop shadow
     canvas.drawPath(
       Path()
         ..moveTo(size.width / 2, size.height + 4)
@@ -786,13 +764,12 @@ class _PointerPainter extends CustomPainter {
         ..lineTo(size.width + 2, 2)
         ..close(),
       Paint()
-        ..color = Colors.black.withOpacity(0.20)
+        ..color = Colors.black.withValues(alpha: 0.20)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
     );
 
-    // Body with gradient
     final bodyPath = Path()
-      ..moveTo(size.width / 2, size.height)  // tip (bottom, points into wheel)
+      ..moveTo(size.width / 2, size.height)
       ..lineTo(0, 0)
       ..lineTo(size.width, 0)
       ..close();
@@ -800,21 +777,20 @@ class _PointerPainter extends CustomPainter {
     canvas.drawPath(
       bodyPath,
       Paint()
-        ..shader = LinearGradient(
+        ..shader = const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
             AppTheme.primaryLight,
             AppTheme.primary,
           ],
-        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height)),
+        ).createShader(Rect.fromLTWH(0, 0, 30, 36)),
     );
 
-    // White highlight on left edge
     canvas.drawPath(
       bodyPath,
       Paint()
-        ..color = Colors.white.withOpacity(0.35)
+        ..color = Colors.white.withValues(alpha: 0.35)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5,
     );

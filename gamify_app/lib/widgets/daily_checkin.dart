@@ -23,7 +23,7 @@ class DailyCheckIn extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -63,105 +63,128 @@ class DailyCheckIn extends StatelessWidget {
               final day = i + 1;
               final isPast = day <= streak;
               final isToday = day == streak + 1 && !claimed;
+              final isFuture = !isPast && !isToday;
+
               return Expanded(
                 child: Padding(
                   padding: EdgeInsets.only(right: i < 6 ? 6 : 0),
-                  child: Column(
-                    children: [
-                      Container(
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: isPast
-                              ? AppTheme.primary
-                              : isToday
-                                  ? AppTheme.primary.withOpacity(0.12)
-                                  : AppTheme.background,
-                          borderRadius: BorderRadius.circular(12),
-                          border: isToday
-                              ? Border.all(color: AppTheme.primary, width: 2)
-                              : null,
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              isPast
-                                  ? Icons.check_rounded
-                                  : Icons.monetization_on_rounded,
-                              color: isPast
-                                  ? Colors.white
-                                  : isToday
-                                      ? AppTheme.primary
-                                      : AppTheme.textHint,
-                              size: 18,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${rewards[i]}',
-                              style: GoogleFonts.manrope(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                color: isPast
-                                    ? Colors.white
-                                    : isToday
-                                        ? AppTheme.primary
-                                        : AppTheme.textHint,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Д$day',
-                        style: GoogleFonts.manrope(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
+                  child: _DayCell(
+                    day: day,
+                    coins: rewards[i],
+                    isPast: isPast,
+                    isToday: isToday,
+                    isFuture: isFuture,
                   ),
                 ),
               );
             }),
           ),
           const SizedBox(height: 16),
+          // Claim button
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: claimed
                   ? null
-                  : () {
-                      final reward = rewards[streak.clamp(0, 6)];
-                      state.claimDaily(reward, 20);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('+$reward монет и +20 XP за вход! 🎉'),
-                          backgroundColor: AppTheme.questGreen,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
+                  : () async {
+                      await context.read<AppState>().claimDailyReward();
                     },
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    claimed ? AppTheme.silver : AppTheme.primary,
                 minimumSize: const Size(double.infinity, 48),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                elevation: 0,
+                    borderRadius: BorderRadius.circular(14)),
+                backgroundColor:
+                    claimed ? AppTheme.surface : AppTheme.primary,
+                disabledBackgroundColor:
+                    AppTheme.textHint.withValues(alpha: 0.15),
               ),
               child: Text(
-                claimed ? 'Уже получено сегодня ✓' : 'Забрать награду',
+                claimed ? '✓ Получено сегодня' : 'Получить награду',
                 style: GoogleFonts.manrope(
-                  fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white,
+                  color: claimed ? AppTheme.textHint : Colors.white,
                 ),
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DayCell extends StatelessWidget {
+  final int day;
+  final int coins;
+  final bool isPast;
+  final bool isToday;
+  final bool isFuture;
+
+  const _DayCell({
+    required this.day,
+    required this.coins,
+    required this.isPast,
+    required this.isToday,
+    required this.isFuture,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    Color bgColor;
+    Color textColor;
+    Widget icon;
+
+    if (isPast) {
+      bgColor = AppTheme.questGreen.withValues(alpha: 0.15);
+      textColor = AppTheme.questGreen;
+      icon = const Icon(Icons.check_circle_rounded,
+          color: AppTheme.questGreen, size: 18);
+    } else if (isToday) {
+      bgColor = AppTheme.primary.withValues(alpha: 0.12);
+      textColor = AppTheme.primary;
+      icon = Text(
+        '🪙$coins',
+        style: GoogleFonts.manrope(
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          color: AppTheme.primary,
+        ),
+      );
+    } else {
+      bgColor = AppTheme.background;
+      textColor = AppTheme.textHint;
+      icon = Text(
+        '🪙$coins',
+        style: GoogleFonts.manrope(
+          fontSize: 9,
+          fontWeight: FontWeight.w600,
+          color: AppTheme.textHint,
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(10),
+        border: isToday
+            ? Border.all(color: AppTheme.primary, width: 1.5)
+            : null,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'День $day',
+            style: GoogleFonts.manrope(
+              fontSize: 8,
+              fontWeight: FontWeight.w600,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 4),
+          icon,
         ],
       ),
     );

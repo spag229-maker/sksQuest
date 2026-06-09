@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
-import 'main_shell.dart';
+import '../state/app_state.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,55 +11,36 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
-    with SingleTickerProviderStateMixin {
-  final _phoneController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
-  bool _isLoading = false;
-  late AnimationController _animController;
-  late Animation<double> _fadeAnim;
-  late Animation<Offset> _slideAnim;
+class _LoginScreenState extends State<LoginScreen> 
+    with TickerProviderStateMixin {
+  late final TabController _tabController;
+  late final AnimationController _animController;
+  late final Animation<double> _fadeAnim;
+  late final Animation<Offset> _slideAnim;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
     );
-    _fadeAnim = CurvedAnimation(
-      parent: _animController,
-      curve: Curves.easeOut,
-    );
+    _fadeAnim =
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _slideAnim = Tween<Offset>(
       begin: const Offset(0, 0.08),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
+    ).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut));
     _animController.forward();
   }
 
   @override
   void dispose() {
+    _tabController.dispose();
     _animController.dispose();
-    _phoneController.dispose();
-    _passwordController.dispose();
     super.dispose();
-  }
-
-  void _login() async {
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const MainShell(),
-        transitionsBuilder: (_, anim, __, child) =>
-            FadeTransition(opacity: anim, child: child),
-        transitionDuration: const Duration(milliseconds: 500),
-      ),
-    );
   }
 
   @override
@@ -71,9 +53,11 @@ class _LoginScreenState extends State<LoginScreen>
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           child: Column(
             children: [
+              // ── Logo + tagline ──
               AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                height: MediaQuery.of(context).viewInsets.bottom > 0 ? 0 : null,
+                height:
+                    MediaQuery.of(context).viewInsets.bottom > 0 ? 0 : null,
                 clipBehavior: Clip.hardEdge,
                 decoration: const BoxDecoration(),
                 padding: const EdgeInsets.only(top: 32, bottom: 16),
@@ -91,17 +75,15 @@ class _LoginScreenState extends State<LoginScreen>
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: AppTheme.primary.withValues(alpha: 0.35),
+                                color:
+                                    AppTheme.primary.withValues(alpha: 0.35),
                                 blurRadius: 24,
                                 offset: const Offset(0, 8),
                               ),
                             ],
                           ),
-                          child: const Icon(
-                            Icons.bolt_rounded,
-                            color: Colors.white,
-                            size: 40,
-                          ),
+                          child: const Icon(Icons.bolt_rounded,
+                              color: Colors.white, size: 40),
                         ),
                         const SizedBox(height: 20),
                         const _GamificationTeaser(),
@@ -110,6 +92,8 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                 ),
               ),
+
+              // ── Card with Login / Register tabs ──
               SlideTransition(
                 position: _slideAnim,
                 child: FadeTransition(
@@ -127,109 +111,41 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       ],
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(28),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Вход в личный кабинет',
-                            style: GoogleFonts.manrope(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: AppTheme.textPrimary,
+                    child: Column(
+                      children: [
+                        // Tab bar
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                          child: TabBar(
+                            controller: _tabController,
+                            labelStyle: GoogleFonts.manrope(
+                                fontWeight: FontWeight.w700, fontSize: 14),
+                            unselectedLabelStyle: GoogleFonts.manrope(
+                                fontWeight: FontWeight.w500, fontSize: 14),
+                            labelColor: AppTheme.primary,
+                            unselectedLabelColor: AppTheme.textSecondary,
+                            indicator: UnderlineTabIndicator(
+                              borderSide: BorderSide(
+                                  color: AppTheme.primary, width: 2),
+                              borderRadius: BorderRadius.circular(2),
                             ),
+                            tabs: const [
+                              Tab(text: 'Вход'),
+                              Tab(text: 'Регистрация'),
+                            ],
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Войди и продолжи свой путь к наградам',
-                            style: GoogleFonts.manrope(
-                              fontSize: 13,
-                              color: AppTheme.textSecondary,
-                            ),
+                        ),
+                        SizedBox(
+                          height: 360,
+                          child: TabBarView(
+                            controller: _tabController,
+                            children: const [
+                              _LoginForm(),
+                              _RegisterForm(),
+                            ],
                           ),
-                          const SizedBox(height: 28),
-                          TextField(
-                            controller: _phoneController,
-                            keyboardType: TextInputType.phone,
-                            style: GoogleFonts.manrope(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              color: AppTheme.textPrimary,
-                            ),
-                            decoration: const InputDecoration(
-                              hintText: 'Телефон',
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextField(
-                            controller: _passwordController,
-                            obscureText: _obscurePassword,
-                            style: GoogleFonts.manrope(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              color: AppTheme.textPrimary,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Пароль',
-                              suffixIcon: GestureDetector(
-                                onTap: () => setState(() =>
-                                    _obscurePassword = !_obscurePassword),
-                                child: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility_off_outlined
-                                      : Icons.visibility_outlined,
-                                  color: AppTheme.textHint,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 28),
-                          ElevatedButton(
-                            onPressed: _isLoading ? null : _login,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primary,
-                              minimumSize: const Size(double.infinity, 56),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: _isLoading
-                                ? const SizedBox(
-                                    width: 22,
-                                    height: 22,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2.5,
-                                    ),
-                                  )
-                                : Text(
-                                    'Войти в личный кабинет',
-                                    style: GoogleFonts.manrope(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                          ),
-                          const SizedBox(height: 16),
-                          Center(
-                            child: TextButton(
-                              onPressed: () {},
-                              child: Text(
-                                'Войти по паспорту',
-                                style: GoogleFonts.manrope(
-                                  fontSize: 14,
-                                  color: AppTheme.textSecondary,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -241,6 +157,244 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 }
+
+// ── Login form ────────────────────────────────────────────────────────────────
+
+class _LoginForm extends StatefulWidget {
+  const _LoginForm();
+
+  @override
+  State<_LoginForm> createState() => _LoginFormState();
+}
+
+class _LoginFormState extends State<_LoginForm> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _obscure = true;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final state = context.read<AppState>();
+    final ok = await state.login(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
+    if (!mounted) return;
+    if (!ok && state.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(state.errorMessage!),
+          backgroundColor: AppTheme.primary,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+    // Navigation is handled by _AuthGate — no pushReplacement needed
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isLoading = context.select<AppState, bool>((s) => s.isLoading);
+    return Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Войди и продолжи путь к наградам',
+            style: GoogleFonts.manrope(
+                fontSize: 13, color: AppTheme.textSecondary),
+          ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            style: GoogleFonts.manrope(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textPrimary),
+            decoration: const InputDecoration(hintText: 'Email'),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _passwordController,
+            obscureText: _obscure,
+            style: GoogleFonts.manrope(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textPrimary),
+            decoration: InputDecoration(
+              hintText: 'Пароль',
+              suffixIcon: GestureDetector(
+                onTap: () => setState(() => _obscure = !_obscure),
+                child: Icon(
+                  _obscure
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  color: AppTheme.textHint,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: isLoading ? null : _submit,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              minimumSize: const Size(double.infinity, 56),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              elevation: 0,
+            ),
+            child: isLoading
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2.5),
+                  )
+                : Text(
+                    'Войти',
+                    style: GoogleFonts.manrope(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Register form ─────────────────────────────────────────────────────────────
+
+class _RegisterForm extends StatefulWidget {
+  const _RegisterForm();
+
+  @override
+  State<_RegisterForm> createState() => _RegisterFormState();
+}
+
+class _RegisterFormState extends State<_RegisterForm> {
+  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _obscure = true;
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final state = context.read<AppState>();
+    final ok = await state.register(
+      _usernameController.text.trim(),
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
+    if (!mounted) return;
+    if (!ok && state.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(state.errorMessage!),
+          backgroundColor: AppTheme.primary,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isLoading = context.select<AppState, bool>((s) => s.isLoading);
+    return Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        children: [
+          TextField(
+            controller: _usernameController,
+            style: GoogleFonts.manrope(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textPrimary),
+            decoration: const InputDecoration(hintText: 'Имя пользователя'),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            style: GoogleFonts.manrope(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textPrimary),
+            decoration: const InputDecoration(hintText: 'Email'),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _passwordController,
+            obscureText: _obscure,
+            style: GoogleFonts.manrope(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textPrimary),
+            decoration: InputDecoration(
+              hintText: 'Пароль',
+              suffixIcon: GestureDetector(
+                onTap: () => setState(() => _obscure = !_obscure),
+                child: Icon(
+                  _obscure
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  color: AppTheme.textHint,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: isLoading ? null : _submit,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              minimumSize: const Size(double.infinity, 56),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              elevation: 0,
+            ),
+            child: isLoading
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2.5),
+                  )
+                : Text(
+                    'Создать аккаунт',
+                    style: GoogleFonts.manrope(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Teaser ────────────────────────────────────────────────────────────────────
 
 class _GamificationTeaser extends StatelessWidget {
   const _GamificationTeaser();
@@ -261,10 +415,8 @@ class _GamificationTeaser extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           'Зарабатывай бонусы, выполняй квесты',
-          style: GoogleFonts.manrope(
-            fontSize: 13,
-            color: AppTheme.textSecondary,
-          ),
+          style:
+              GoogleFonts.manrope(fontSize: 13, color: AppTheme.textSecondary),
         ),
         const SizedBox(height: 20),
         Row(
@@ -274,7 +426,8 @@ class _GamificationTeaser extends StatelessWidget {
             const SizedBox(width: 16),
             _perk(Icons.casino_rounded, AppTheme.primary, 'Колесо'),
             const SizedBox(width: 16),
-            _perk(Icons.military_tech_rounded, AppTheme.legendaryPurple, 'Лиги'),
+            _perk(
+                Icons.military_tech_rounded, AppTheme.legendaryPurple, 'Лиги'),
           ],
         ),
       ],
@@ -297,10 +450,9 @@ class _GamificationTeaser extends StatelessWidget {
         Text(
           label,
           style: GoogleFonts.manrope(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.textSecondary,
-          ),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textSecondary),
         ),
       ],
     );
