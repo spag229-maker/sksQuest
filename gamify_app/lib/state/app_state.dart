@@ -64,23 +64,27 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<bool> login(String email, String password) async {
-    _setLoading(true);
-    errorMessage = null;
-    try {
-      _user = await AuthService.instance
-          .login(LoginRequest(email: email, password: password));
-      _authStatus = AuthStatus.authenticated;
-      await _loadInitialData();
-      _setLoading(false);
-      return true;
-    } catch (e) {
-      errorMessage = _friendlyError(e);
-      _authStatus = AuthStatus.unauthenticated;
-      _setLoading(false);
-      return false;
-    }
+  Future<bool> login(String username, String password) async {
+  _setLoading(true);
+  errorMessage = null;
+  try {
+    _user = await AuthService.instance.login(
+      LoginRequest(
+        username: username,
+        password: password,
+      ),
+    );
+    _authStatus = AuthStatus.authenticated;
+    await _loadInitialData();
+    _setLoading(false);
+    return true;
+  } catch (e) {
+    errorMessage = _friendlyError(e);
+    _authStatus = AuthStatus.unauthenticated;
+    _setLoading(false);
+    return false;
   }
+}
 
   Future<bool> register(String username, String email, String password) async {
     _setLoading(true);

@@ -11,7 +11,7 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> 
+class _LoginScreenState extends State<LoginScreen>
     with TickerProviderStateMixin {
   late final TabController _tabController;
   late final AnimationController _animController;
@@ -168,24 +168,27 @@ class _LoginForm extends StatefulWidget {
 }
 
 class _LoginFormState extends State<_LoginForm> {
-  final _emailController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscure = true;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     final state = context.read<AppState>();
+
     final ok = await state.login(
-      _emailController.text.trim(),
+      _usernameController.text.trim(),
       _passwordController.text,
     );
+
     if (!mounted) return;
+
     if (!ok && state.errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -195,7 +198,6 @@ class _LoginFormState extends State<_LoginForm> {
         ),
       );
     }
-    // Navigation is handled by _AuthGate — no pushReplacement needed
   }
 
   @override
@@ -213,13 +215,13 @@ class _LoginFormState extends State<_LoginForm> {
           ),
           const SizedBox(height: 20),
           TextField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
+            controller: _usernameController,
+            keyboardType: TextInputType.text,
             style: GoogleFonts.manrope(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
                 color: AppTheme.textPrimary),
-            decoration: const InputDecoration(hintText: 'Email'),
+            decoration: const InputDecoration(hintText: 'Имя пользователя'),
           ),
           const SizedBox(height: 8),
           TextField(
@@ -299,12 +301,15 @@ class _RegisterFormState extends State<_RegisterForm> {
 
   Future<void> _submit() async {
     final state = context.read<AppState>();
+
     final ok = await state.register(
       _usernameController.text.trim(),
       _emailController.text.trim(),
       _passwordController.text,
     );
+
     if (!mounted) return;
+
     if (!ok && state.errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -326,20 +331,26 @@ class _RegisterFormState extends State<_RegisterForm> {
           TextField(
             controller: _usernameController,
             style: GoogleFonts.manrope(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: AppTheme.textPrimary),
-            decoration: const InputDecoration(hintText: 'Имя пользователя'),
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: AppTheme.textPrimary,
+            ),
+            decoration: const InputDecoration(
+              hintText: 'Имя пользователя',
+            ),
           ),
           const SizedBox(height: 8),
           TextField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             style: GoogleFonts.manrope(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: AppTheme.textPrimary),
-            decoration: const InputDecoration(hintText: 'Email'),
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: AppTheme.textPrimary,
+            ),
+            decoration: const InputDecoration(
+              hintText: 'Email',
+            ),
           ),
           const SizedBox(height: 8),
           TextField(

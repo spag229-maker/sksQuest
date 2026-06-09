@@ -6,7 +6,7 @@ class ApiConfig {
   /// In development: http://127.0.0.1:8000
   /// In production : replace with your real domain.
   static const String baseUrl =
-      String.fromEnvironment('API_URL', defaultValue: 'http://127.0.0.1:8000');
+      String.fromEnvironment('API_URL', defaultValue: 'http://10.161.95.121:8000');
 
   // ── Endpoint constants ────────────────────────────────────────────────────
   static const String register = '/auth/register';
