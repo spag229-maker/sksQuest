@@ -83,6 +83,25 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Магазин ──
+  void spendCoins(int amount) {
+    if (user.coins < amount) return;
+    user.coins -= amount;
+    history.insert(
+      0,
+      RewardHistoryItem(
+        title: 'Покупка в магазине',
+        subtitle: 'Списание монет',
+        amount: -amount,
+        isCoins: true,
+        icon: Icons.shopping_bag_rounded,
+        color: const Color(0xFF9E9E9E),
+        date: DateTime.now(),
+      ),
+    );
+    notifyListeners();
+  }
+
   void _checkLevelUp() {
     while (user.xp >= user.level * 500) {
       user.level += 1;

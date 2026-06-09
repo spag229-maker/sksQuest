@@ -49,12 +49,12 @@ class RewardHistoryItem {
           date: DateTime.now().subtract(const Duration(days: 1)),
         ),
         RewardHistoryItem(
-          title: 'Обмен на скидку',
-          subtitle: 'Скидка 10%',
-          amount: -200,
+          title: 'Покупка в магазине',
+          subtitle: 'Худи Signature',
+          amount: -4450,
           isCoins: true,
-          icon: Icons.local_offer_rounded,
-          color: const Color(0xFF2979FF),
+          icon: Icons.shopping_bag_rounded,
+          color: const Color(0xFF9E9E9E),
           date: DateTime.now().subtract(const Duration(days: 2)),
         ),
       ];

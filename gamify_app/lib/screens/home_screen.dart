@@ -6,6 +6,8 @@ import '../state/app_state.dart';
 import '../widgets/stat_chip.dart';
 import '../widgets/daily_checkin.dart';
 import 'profile_screen.dart';
+import 'shop_screen.dart';
+import 'badges_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -21,85 +23,85 @@ class HomeScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
-            // Заголовок + аватар
+            // ── Profile row ──────────────────────────────────────────────────
             GestureDetector(
-  onTap: () => Navigator.of(context).push(
-    MaterialPageRoute(builder: (_) => const ProfileScreen()),
-  ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 26,
-                  backgroundColor: AppTheme.primary,
-                  child: Text(
-                    user.name[0],
-                    style: GoogleFonts.manrope(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Привет,',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 26,
+                    backgroundColor: AppTheme.primary,
+                    child: Text(
+                      user.name[0],
                       style: GoogleFonts.manrope(
-                        fontSize: 13,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                    Text(
-                      user.name,
-                      style: GoogleFonts.manrope(
-                        fontSize: 18,
+                        fontSize: 22,
                         fontWeight: FontWeight.w800,
-                        color: AppTheme.textPrimary,
+                        color: Colors.white,
                       ),
                     ),
-                  ],
-                ),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppTheme.silver.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Row(
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.military_tech_rounded,
-                          color: AppTheme.silver, size: 18),
-                      const SizedBox(width: 4),
                       Text(
-                        user.league,
+                        'Привет,',
                         style: GoogleFonts.manrope(
                           fontSize: 13,
-                          fontWeight: FontWeight.w700,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                      Text(
+                        user.name,
+                        style: GoogleFonts.manrope(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
                           color: AppTheme.textPrimary,
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.silver.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.military_tech_rounded,
+                            color: AppTheme.silver, size: 18),
+                        const SizedBox(width: 4),
+                        Text(
+                          user.league,
+                          style: GoogleFonts.manrope(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 20),
 
-            // Карточка уровня (XP)
+            // ── Level card ───────────────────────────────────────────────────
             _LevelCard(),
             const SizedBox(height: 16),
 
-            // Статы
+            // ── Stat chips ───────────────────────────────────────────────────
             Row(
               children: [
                 Expanded(
                   child: StatChip(
-                    icon: Icons.monetization_on_rounded,
+                    emoji: '🪙',
                     color: AppTheme.gold,
                     value: '${user.coins}',
                     label: 'Монеты',
@@ -127,11 +129,15 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // Ежедневный вход
+            // ── Quick-access banners: Shop + Badges ──────────────────────────
+            _QuickAccessRow(),
+            const SizedBox(height: 20),
+
+            // ── Daily check-in ────────────────────────────────────────────────
             const DailyCheckIn(),
             const SizedBox(height: 24),
 
-            // История бонусов
+            // ── Bonus history ─────────────────────────────────────────────────
             Text(
               'История бонусов',
               style: GoogleFonts.manrope(
@@ -148,6 +154,163 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
+
+// ─── Quick-access row (Shop + Badges) ─────────────────────────────────────────
+
+class _QuickAccessRow extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _BannerCard(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFE8002D), Color(0xFFB8001F)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            iconEmoji: '🛍️',
+            title: 'Магазин',
+            subtitle: 'Трать монеты\nна мерч',
+            accentText: '10 товаров',
+            accentIcon: Icons.arrow_forward_ios_rounded,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ShopScreen()),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _BannerCard(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF7C4DFF), Color(0xFF5C35CC)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            iconEmoji: '🏅',
+            title: 'Бейджи',
+            subtitle: '1 из 5\nполучено',
+            accentText: 'Смотреть',
+            accentIcon: Icons.arrow_forward_ios_rounded,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const BadgesScreen()),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BannerCard extends StatefulWidget {
+  final LinearGradient gradient;
+  final String iconEmoji;
+  final String title;
+  final String subtitle;
+  final String accentText;
+  final IconData accentIcon;
+  final VoidCallback onTap;
+
+  const _BannerCard({
+    required this.gradient,
+    required this.iconEmoji,
+    required this.title,
+    required this.subtitle,
+    required this.accentText,
+    required this.accentIcon,
+    required this.onTap,
+  });
+
+  @override
+  State<_BannerCard> createState() => _BannerCardState();
+}
+
+class _BannerCardState extends State<_BannerCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 110));
+    _scale = Tween<double>(begin: 1.0, end: 0.95)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _ctrl.forward(),
+      onTapUp: (_) {
+        _ctrl.reverse();
+        widget.onTap();
+      },
+      onTapCancel: () => _ctrl.reverse(),
+      child: AnimatedBuilder(
+        animation: _scale,
+        builder: (_, child) =>
+            Transform.scale(scale: _scale.value, child: child),
+        child: Container(
+          height: 110,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: widget.gradient,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: widget.gradient.colors.first.withOpacity(0.38),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(widget.iconEmoji,
+                      style: const TextStyle(fontSize: 22)),
+                  const Spacer(),
+                  Icon(widget.accentIcon,
+                      size: 14, color: Colors.white.withOpacity(0.7)),
+                ],
+              ),
+              const Spacer(),
+              Text(
+                widget.title,
+                style: GoogleFonts.manrope(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 1),
+              Text(
+                widget.subtitle,
+                style: GoogleFonts.manrope(
+                  fontSize: 10.5,
+                  color: Colors.white.withOpacity(0.75),
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Level card ───────────────────────────────────────────────────────────────
 
 class _LevelCard extends StatelessWidget {
   @override
@@ -218,6 +381,8 @@ class _LevelCard extends StatelessWidget {
     );
   }
 }
+
+// ─── History tile ─────────────────────────────────────────────────────────────
 
 class _HistoryTile extends StatelessWidget {
   final dynamic item;
